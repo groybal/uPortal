@@ -32,18 +32,23 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 
 /**
  * @author Eric Dalquist
  * @version $Revision$
  */
 @Controller
-public class JsonRenderingController {
+@RequestMapping("/layout/v2")
+public class LayoutJsonV2RenderingController {
+
+    private static final String STRUCTURE_STYLESHEET_NAME = "DLMTabsColumnsJS";
+
     protected final Logger logger = LoggerFactory.getLogger(this.getClass());
-    
+
     private IPortalRenderingPipeline portalRenderingPipeline;
     private IPortletWindowRegistry portletWindowRegistry;
-    
+
     @Autowired
     @Qualifier("json")
     public void setPortalRenderingPipeline(IPortalRenderingPipeline portalRenderingPipeline) {
@@ -55,10 +60,22 @@ public class JsonRenderingController {
         this.portletWindowRegistry = portletWindowRegistry;
     }
 
-    @RequestMapping("/layout.json")
+    @RequestMapping(value="/layout.json", method = RequestMethod.GET)
     public void renderRequest(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        this.setStructureStylesheetNameForJavascriptDrivenContentRendering(request);
+        this.setThemeStylesheetVersionForJavascriptDrivenContentRendering(request);
         this.portletWindowRegistry.disablePersistentWindowStates(request);
         this.portalRenderingPipeline.renderState(request, response);
+    }
+
+    private void setStructureStylesheetNameForJavascriptDrivenContentRendering(final HttpServletRequest request) {
+        request.setAttribute(JsonStructureAttributeSource.STYLESHEET_NAME_REQUEST_ATTRIBUTE, STRUCTURE_STYLESHEET_NAME);
+        request.setAttribute(JsonStructureTransformerSource.STYLESHEET_NAME_REQUEST_ATTRIBUTE, STRUCTURE_STYLESHEET_NAME);
+    }
+
+    private void setThemeStylesheetVersionForJavascriptDrivenContentRendering(final HttpServletRequest request) {
+        request.setAttribute(JsonThemeAttributeSource.STYLESHEET_VERSION_OVERRIDE_REQUEST_ATTRIBUTE_NAME, "V2");
+        request.setAttribute(JsonThemeTransformerSource.STYLESHEET_VERSION_OVERRIDE_REQUEST_ATTRIBUTE_NAME, "V2");
     }
 
 }
