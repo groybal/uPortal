@@ -41,6 +41,7 @@ import org.jasig.portal.layout.om.IStylesheetUserPreferences;
 import org.jasig.portal.security.IPerson;
 import org.jasig.portal.user.IUserInstance;
 import org.jasig.portal.user.IUserInstanceManager;
+import org.jasig.portal.utils.IFragmentDefinitionUtils;
 import org.jasig.portal.utils.Populator;
 import org.jasig.portal.utils.web.PortalWebUtils;
 import org.slf4j.Logger;
@@ -54,6 +55,7 @@ import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
+
 import org.apache.commons.lang3.StringUtils;
 
 /**
@@ -75,6 +77,7 @@ public class StylesheetUserPreferencesServiceImpl implements IStylesheetUserPref
     
     protected final Logger logger = LoggerFactory.getLogger(getClass());
     
+    private IFragmentDefinitionUtils fragmentUtils;
     private IUserInstanceManager userInstanceManager;
     private IStylesheetDescriptorDao stylesheetDescriptorDao;
     private IStylesheetUserPreferencesDao stylesheetUserPreferencesDao;
@@ -94,7 +97,11 @@ public class StylesheetUserPreferencesServiceImpl implements IStylesheetUserPref
         this.stylesheetUserPreferencesDao = stylesheetUserPreferencesDao;
     }
     
-    
+    @Autowired
+    public void setFragmentDefinitionUtils(final IFragmentDefinitionUtils utils) {
+        this.fragmentUtils = utils;
+    }
+
     protected static final class StylesheetPreferencesKey {
         private final IPerson person;
         private final IUserProfile userProfile;
@@ -150,7 +157,7 @@ public class StylesheetUserPreferencesServiceImpl implements IStylesheetUserPref
         return stylesheetPreferencesKey.person.isGuest();
     }
     
-    protected final boolean compareValues(String value, String defaultValue) {
+    protected final boolean valuesAreEqual(String value, String defaultValue) {
         return value == defaultValue || (value != null && value.equals(defaultValue));
     }
     
@@ -283,7 +290,7 @@ public class StylesheetUserPreferencesServiceImpl implements IStylesheetUserPref
         }
         
         //If the value is equal to the default value remove the property and return null
-        if (this.compareValues(value, outputPropertyDescriptor.getDefaultValue())) {
+        if (this.valuesAreEqual(value, outputPropertyDescriptor.getDefaultValue())) {
             this.removeOutputProperty(request, prefScope, name);
             return null;
         }
@@ -302,7 +309,7 @@ public class StylesheetUserPreferencesServiceImpl implements IStylesheetUserPref
             return null;
         }
         
-        if (this.compareValues(value, outputPropertyDescriptor.getDefaultValue())) {
+        if (this.valuesAreEqual(value, outputPropertyDescriptor.getDefaultValue())) {
             return this.removeOutputProperty(request, prefScope, name);
         }
         
@@ -422,7 +429,7 @@ public class StylesheetUserPreferencesServiceImpl implements IStylesheetUserPref
             }
             
             //If the value is equal to the default value remove the property and return null
-            if (this.compareValues(value, outputPropertyDescriptor.getDefaultValue())) {
+            if (this.valuesAreEqual(value, outputPropertyDescriptor.getDefaultValue())) {
                 this.removeOutputProperty(request, prefScope, name);
                 continue;
             }
@@ -490,7 +497,7 @@ public class StylesheetUserPreferencesServiceImpl implements IStylesheetUserPref
         }
         
         //If the value is equal to the default value remove the property and return null
-        if (this.compareValues(value, stylesheetParameterDescriptor.getDefaultValue())) {
+        if (this.valuesAreEqual(value, stylesheetParameterDescriptor.getDefaultValue())) {
             this.removeStylesheetParameter(request, prefScope, name);
             return null;
         }
@@ -512,7 +519,7 @@ public class StylesheetUserPreferencesServiceImpl implements IStylesheetUserPref
             return null;
         }
         
-        if (this.compareValues(value, stylesheetParameterDescriptor.getDefaultValue())) {
+        if (this.valuesAreEqual(value, stylesheetParameterDescriptor.getDefaultValue())) {
             return this.removeStylesheetParameter(request, prefScope, name);
         }
         
@@ -642,7 +649,7 @@ public class StylesheetUserPreferencesServiceImpl implements IStylesheetUserPref
             }
             
             //If the value is equal to the default value remove the property and return null
-            if (this.compareValues(value, stylesheetParameterDescriptor.getDefaultValue())) {
+            if (this.valuesAreEqual(value, stylesheetParameterDescriptor.getDefaultValue())) {
                 this.removeStylesheetParameter(request, prefScope, name);
                 continue;
             }
@@ -682,15 +689,14 @@ public class StylesheetUserPreferencesServiceImpl implements IStylesheetUserPref
             return null;
         }
 
-
-        
         //Load the default value
         String defaultValue = null;
         final IStylesheetUserPreferences distributedStylesheetUserPreferences = this.getDistributedStylesheetUserPreferences(request, prefScope);
+
         if (distributedStylesheetUserPreferences != null) {
             defaultValue = distributedStylesheetUserPreferences.getLayoutAttribute(nodeId, name);
-            
-            if (this.compareValues(defaultValue, layoutAttributeDescriptor.getDefaultValue())) {
+
+            if (this.valuesAreEqual(defaultValue, layoutAttributeDescriptor.getDefaultValue())) {
                 //DLM attribute value matches the stylesheet descriptor default, remove the DLM value
                 distributedStylesheetUserPreferences.removeLayoutAttribute(nodeId, name);
                 defaultValue = null;
@@ -725,13 +731,18 @@ public class StylesheetUserPreferencesServiceImpl implements IStylesheetUserPref
         if (value == null) {
             return defaultValue;
         }
-        
-        if (this.compareValues(value, layoutAttributeDescriptor.getDefaultValue()) || //Value is equal to stylesheet descriptor default
-            (defaultValue != null && this.compareValues(value, defaultValue))) { //Value is equal to DLM stylesheet preferences default
-            
-            //Remove the user's customized value
-            this.removeLayoutAttribute(request, prefScope, nodeId, name);
-            return null;
+
+        // Special handling here for fragment owners. For fragment owners, the stylesheet user preference will always match the DLM stylesheet
+        // preference, so the "valuesAreEqual" call will always return "true".  However, we do NOT want to remove the user's customized layout
+        // attributes for fragment owners because layout attributes for a fragment owner are the actual attributes for the fragment in general, 
+        //and removing them would affect the fragment for all users (who can view the fragment).
+        if (!this.isFragmentOwnerStylesheetPreferencesKey(stylesheetPreferencesKey)) {
+	        if (this.valuesAreEqual(value, layoutAttributeDescriptor.getDefaultValue()) || //Value is equal to stylesheet descriptor default
+	            (defaultValue != null && this.valuesAreEqual(value, defaultValue))) { //Value is equal to DLM stylesheet preferences default
+	            //Remove the user's customized value
+	            this.removeLayoutAttribute(request, prefScope, nodeId, name);
+	            return null;
+	        }
         }
         
         return value;
@@ -802,7 +813,7 @@ public class StylesheetUserPreferencesServiceImpl implements IStylesheetUserPref
             return null;
         }
         
-        if (this.compareValues(value, layoutAttributeDescriptor.getDefaultValue())) {
+        if (this.valuesAreEqual(value, layoutAttributeDescriptor.getDefaultValue())) {
             //Value matches the default value, remove the attribute
             return this.removeLayoutAttribute(request, prefScope, nodeId, name);
         }
@@ -810,7 +821,7 @@ public class StylesheetUserPreferencesServiceImpl implements IStylesheetUserPref
         final IStylesheetUserPreferences distributedStylesheetUserPreferences = this.getDistributedStylesheetUserPreferences(request, prefScope);
         if (distributedStylesheetUserPreferences != null) {
             final String defaultValue = distributedStylesheetUserPreferences.getLayoutAttribute(nodeId, name);
-            if (this.compareValues(value, defaultValue)) {
+            if (this.valuesAreEqual(value, defaultValue)) {
                 //Value matches the DLM preferences value, remove the value
                 return this.removeLayoutAttribute(request, prefScope, nodeId, name);
             }
@@ -946,21 +957,26 @@ public class StylesheetUserPreferencesServiceImpl implements IStylesheetUserPref
     @Override
     public Map<String, String> getAllNodesAndValuesForAttribute(HttpServletRequest request, PreferencesScope prefScope, String name) {
         final StylesheetPreferencesKey stylesheetPreferencesKey = this.getStylesheetPreferencesKey(request, prefScope);
-        final IStylesheetUserPreferences stylesheetUserPreferences = this.getStylesheetUserPreferences(request, stylesheetPreferencesKey);
-
         final Builder<String, String> result = ImmutableMap.builder();
-        
-        final IStylesheetUserPreferences distributedStylesheetUserPreferences = this.getDistributedStylesheetUserPreferences(request, prefScope);
-        if (distributedStylesheetUserPreferences != null) {
-            final Map<String, String> allNodesAndValuesForAttribute = distributedStylesheetUserPreferences.getAllNodesAndValuesForAttribute(name);
-            result.putAll(allNodesAndValuesForAttribute);
+        final boolean isFragmentOwner = this.isFragmentOwnerStylesheetPreferencesKey(stylesheetPreferencesKey);
+
+        // For fragment owners, the distributed stylesheet user preferences are identical to the stylesheet user preferences.  Therefore, we don't
+        // need to add both to the result.  In fact, adding duplicate entries will cause an exception (java.lang.IllegalArgumentException: 
+        // Multiple entries with same key) when result.build() is called.
+        if (!isFragmentOwner) {
+            final IStylesheetUserPreferences distributedStylesheetUserPreferences = this.getDistributedStylesheetUserPreferences(request, prefScope);
+            if (distributedStylesheetUserPreferences != null) {
+                final Map<String, String> allNodesAndValuesForAttribute = distributedStylesheetUserPreferences.getAllNodesAndValuesForAttribute(name);
+                result.putAll(allNodesAndValuesForAttribute);
+            }
         }
-        
+
+        final IStylesheetUserPreferences stylesheetUserPreferences = this.getStylesheetUserPreferences(request, stylesheetPreferencesKey);
         if (stylesheetUserPreferences != null) {
             final Map<String, String> allNodesAndValuesForAttribute = stylesheetUserPreferences.getAllNodesAndValuesForAttribute(name);
             result.putAll(allNodesAndValuesForAttribute);
         }
-        
+
         final HttpSession session = request.getSession(false);
         if (session != null) {
             //nodeId, name, value
@@ -1073,7 +1089,7 @@ public class StylesheetUserPreferencesServiceImpl implements IStylesheetUserPref
             }
             
             //If the value is equal to the default value remove the property and return null
-            if (this.compareValues(value, layoutAttributeDescriptor.getDefaultValue())) {
+            if (this.valuesAreEqual(value, layoutAttributeDescriptor.getDefaultValue())) {
                 this.removeLayoutAttribute(request, prefScope, nodeId, name);
                 continue;
             }
@@ -1158,4 +1174,12 @@ public class StylesheetUserPreferencesServiceImpl implements IStylesheetUserPref
         
         return stylesheetNameFromRequest;
     }
+
+    protected boolean isFragmentOwnerStylesheetPreferencesKey(final StylesheetPreferencesKey key) {
+        return this.isFragmentOwner(key.person);
+    }
+    protected boolean isFragmentOwner(final IPerson person) {
+        return this.fragmentUtils.getFragmentDefinitionByOwner(person) != null;
+    }
+
 }

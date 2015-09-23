@@ -25,7 +25,7 @@ import org.w3c.dom.Document;
 /**
  * @since uPortal 2.5
  */
-class UserView
+public class UserView
 {
     private final int userId;
     Document layout = null;
@@ -33,22 +33,24 @@ class UserView
     int profileId = 1;
     String profileFname = "default"; /* Was 1 when profileId was the key. */
 
-    UserView (int fragmentOwnerUserId)
-    {
+    UserView (int fragmentOwnerUserId) {
         this.userId = fragmentOwnerUserId;
     }
-    
-    UserView(int fragmentOwnerUserId, IUserProfile profile, Document layout)
-    {
+
+    UserView(int fragmentOwnerUserId, IUserProfile profile, Document layout) {
         this.userId = fragmentOwnerUserId;
         layoutId = profile.getLayoutId();
         profileId = profile.getProfileId();
         profileFname = profile.getProfileFname();
         this.layout = layout;
     }
-    
+
     public int getUserId() {
         return this.userId;
     }
-    
+
+    public Document getLayout() {
+        return this.layout;
+    }
+
 }
