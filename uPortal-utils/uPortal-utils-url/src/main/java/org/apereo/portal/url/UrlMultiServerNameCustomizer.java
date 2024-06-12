@@ -31,10 +31,12 @@ public class UrlMultiServerNameCustomizer implements IAuthUrlCustomizer {
         this.serverNameTextReplacement = serverNameTextReplacement;
     }
 
+    @Override
     public boolean supports(final HttpServletRequest request, final String url) {
         return url != null && url.contains(serverNameTextReplacement);
     }
 
+    @Override
     public String customizeUrl(final HttpServletRequest request, final String url) {
         if (url != null && !url.isEmpty() && supports(request, url)) {
             final String updateUrl =

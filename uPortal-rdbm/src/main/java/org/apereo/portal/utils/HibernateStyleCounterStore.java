@@ -52,6 +52,7 @@ import org.hibernate.id.IntegralDataTypeHolder;
 import org.hibernate.id.enhanced.AccessCallback;
 import org.hibernate.id.enhanced.Optimizer;
 import org.hibernate.id.enhanced.OptimizerFactory;
+import org.hibernate.id.enhanced.StandardOptimizerDescriptor;
 import org.hibernate.id.enhanced.TableGenerator;
 import org.hibernate.type.IntegerType;
 import org.hibernate.type.Type;
@@ -134,7 +135,7 @@ public class HibernateStyleCounterStore implements ICounterStore {
 
                                 o =
                                         OptimizerFactory.buildOptimizer(
-                                                OptimizerFactory.StandardOptimizerDescriptor.POOLED
+                                                StandardOptimizerDescriptor.POOLED
                                                         .getExternalName(),
                                                 identifierType.getReturnedClass(),
                                                 incrementSize,
@@ -174,6 +175,10 @@ public class HibernateStyleCounterStore implements ICounterStore {
         return (Integer)
                 optimizer.generate(
                         new AccessCallback() {
+                            @Override
+                            public String getTenantIdentifier() {
+                                return null;
+                            }
                             @Override
                             public IntegralDataTypeHolder getNextValue() {
 

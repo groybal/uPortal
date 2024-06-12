@@ -24,12 +24,12 @@
   xmlns:context="http://www.springframework.org/schema/context"
   xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
 		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd">
-    
+
     <!-- Ref to the mbean server -->
     <bean id="mbeanServer" class="org.springframework.jmx.support.MBeanServerFactoryBean">
         <property name="locateExistingServerIfPossible" value="true" />
     </bean>
-    
+
     <!-- Exporter used to register beans with the mbean server -->
     <bean id="jmxAdapter" class="org.springframework.jmx.export.annotation.AnnotationMBeanExporter">
         <property name="server" ref="mbeanServer" />
@@ -43,16 +43,16 @@
                 <entry key="uPortal:section=Framework,name=uPortalTaskScheduler" value-ref="uPortalTaskScheduler" />
                 <entry key="uPortal:section=Framework,name=uPortalLockExecutor" value-ref="uPortalLockExecutor" />
                 <entry key="uPortal:section=Framework,name=PortletThreadPool" value-ref="portletThreadPool" />
-                
+
                 <entry key="uPortal:section=Cache,name=CharacterDataEventCacheStats" value-ref="characterDataEventCacheStatsBean" />
-                
-                <entry key="uPortal:section=Hibernate,name=HibernateStatistics" value-ref="hibernateStatisticsMBean"/>
+
+                <!--entry key="uPortal:section=Hibernate,name=HibernateStatistics" value-ref="hibernateStatisticsMBean"/>
                 <entry key="uPortal:section=Hibernate,name=RawEventsHibernateStatistics" value-ref="rawEventsHibernateStatisticsMBean"/>
-                <entry key="uPortal:section=Hibernate,name=AggrEventsHibernateStatistics" value-ref="aggrEventsHibernateStatisticsMBean"/>
+                <entry key="uPortal:section=Hibernate,name=AggrEventsHibernateStatistics" value-ref="aggrEventsHibernateStatisticsMBean"/-->
             </map>
         </property>
     </bean>
-    
+
     <bean id="mbeanInfoAssembler" class="org.springframework.jmx.export.assembler.MethodExclusionMBeanInfoAssembler">
         <property name="ignoredMethodMappings">
             <props>
@@ -61,7 +61,7 @@
     </bean>
 
     <!-- Hibernate persistence statistics -->
-    <bean id="hibernateStatisticsMBean" class="org.hibernate.jmx.StatisticsService">
+    <!--bean id="hibernateStatisticsMBean" class="org.hibernate.jmx.StatisticsService">
         <property name="statisticsEnabled" value="true"/>
         <property name="sessionFactory">
             <bean class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
@@ -69,10 +69,10 @@
                 <property name="targetMethod" value="getSessionFactory" />
             </bean>
         </property>
-    </bean>
+    </bean-->
 
     <!-- Hibernate Raw Events persistence statistics -->
-    <bean id="rawEventsHibernateStatisticsMBean" class="org.hibernate.jmx.StatisticsService">
+    <!--bean id="rawEventsHibernateStatisticsMBean" class="org.hibernate.jmx.StatisticsService">
         <property name="statisticsEnabled" value="true"/>
         <property name="sessionFactory">
             <bean class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
@@ -80,10 +80,10 @@
                 <property name="targetMethod" value="getSessionFactory" />
             </bean>
         </property>
-    </bean>
-    
+    </bean-->
+
     <!-- Hibernate Aggr Events persistence statistics -->
-    <bean id="aggrEventsHibernateStatisticsMBean" class="org.hibernate.jmx.StatisticsService">
+    <!--bean id="aggrEventsHibernateStatisticsMBean" class="org.hibernate.jmx.StatisticsService">
         <property name="statisticsEnabled" value="true"/>
         <property name="sessionFactory">
             <bean class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
@@ -91,11 +91,11 @@
                 <property name="targetMethod" value="getSessionFactory" />
             </bean>
         </property>
-    </bean>
+    </bean-->
 
     <!-- uPortal framework statistics -->
     <bean id="portalFrameworkMBean" class="org.apereo.portal.jmx.FrameworkMBeanImpl" />
-    
+
     <bean id="characterDataEventCacheStatsBean" class="org.apereo.portal.character.stream.events.CharacterDataEventCacheStatsBean" />
 
     <!-- EhCache management and statistics -->

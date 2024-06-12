@@ -23,13 +23,14 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+
+import org.apache.commons.lang.StringUtils;
 import org.hibernate.HibernateException;
 import org.hibernate.dialect.Dialect;
 import org.hibernate.engine.jdbc.spi.SqlExceptionHelper;
 import org.hibernate.exception.internal.StandardSQLExceptionConverter;
 import org.hibernate.exception.spi.SQLExceptionConverter;
 import org.hibernate.internal.CoreMessageLogger;
-import org.hibernate.internal.util.StringHelper;
 import org.hibernate.mapping.Table;
 import org.jboss.logging.Logger;
 
@@ -83,17 +84,17 @@ public class FixedDatabaseMetadata extends DatabaseMetadata {
                             || (!isQuoted && meta.storesUpperCaseIdentifiers())) {
                         rs =
                                 meta.getTables(
-                                        StringHelper.toUpperCase(catalog),
-                                        StringHelper.toUpperCase(schema),
-                                        StringHelper.toUpperCase(name),
+                                        StringUtils.upperCase(catalog),
+                                        StringUtils.upperCase(schema),
+                                        StringUtils.upperCase(name),
                                         TYPES);
                     } else if ((isQuoted && meta.storesLowerCaseQuotedIdentifiers())
                             || (!isQuoted && meta.storesLowerCaseIdentifiers())) {
                         rs =
                                 meta.getTables(
-                                        StringHelper.toLowerCase(catalog),
-                                        StringHelper.toLowerCase(schema),
-                                        StringHelper.toLowerCase(name),
+                                        StringUtils.lowerCase(catalog),
+                                        StringUtils.lowerCase(schema),
+                                        StringUtils.lowerCase(name),
                                         TYPES);
                     } else {
                         rs = meta.getTables(catalog, schema, name, TYPES);
@@ -150,7 +151,7 @@ public class FixedDatabaseMetadata extends DatabaseMetadata {
     @Override
     public boolean isSequence(Object key) {
         if (key instanceof String) {
-            String[] strings = StringHelper.split(".", (String) key);
+            String[] strings = StringUtils.split(".", (String) key);
             return sequences.contains(strings[strings.length - 1].toLowerCase());
         }
         return false;
@@ -164,7 +165,7 @@ public class FixedDatabaseMetadata extends DatabaseMetadata {
                     != null) {
                 return true;
             } else {
-                String[] strings = StringHelper.split(".", (String) key);
+                String[] strings = StringUtils.split(".", (String) key);
                 if (strings.length == 3) {
                     tbl = new Table(strings[2]);
                     tbl.setCatalog(strings[0]);
